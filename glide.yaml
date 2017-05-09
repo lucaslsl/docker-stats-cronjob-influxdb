@@ -1,0 +1,10 @@
+package: github.com/lucaslsl/docker-stats-cronjob-influxdb
+import:
+- package: github.com/robfig/cron
+  version: ^1
+- package: github.com/namsral/flag
+  version: 1.7.4-alpha
+- package: github.com/influxdata/influxdb
+  version: ^1.2.3
+  subpackages:
+  - client/v2
