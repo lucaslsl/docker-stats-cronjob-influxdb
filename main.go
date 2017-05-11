@@ -55,7 +55,9 @@ func getContainersStats() []ContainerStat {
 
 	var outFormatted bytes.Buffer
 	outFormatted.WriteString("[")
-	outFormatted.Write(out[:len(out)-2])
+	if len(out) > 0 {
+		outFormatted.Write(out[:len(out)-2])
+	}
 	outFormatted.WriteString("]")
 
 	err = json.Unmarshal(outFormatted.Bytes(), &stats)
