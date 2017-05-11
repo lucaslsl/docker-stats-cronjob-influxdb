@@ -45,18 +45,23 @@ func getOutboundIP() string {
 }
 
 func getContainersStats() []ContainerStat {
+	var stats []ContainerStat
+
 	out, err := exec.Command("docker", "stats", "--no-stream", "--format", "{\"id\": \"{{.ID}}\", \"name\": \"{{.Name}}\", \"memory_usage\": \"{{.MemUsage}}\", \"memory_percentage\": \"{{.MemPerc}}\", \"cpu_percentage\": \"{{.CPUPerc}}\"},").Output()
 	if err != nil {
-		log.Printf("%s", err)
+		log.Println("Error running docker stats")
+		return nil
 	}
+
 	var outFormatted bytes.Buffer
 	outFormatted.WriteString("[")
 	outFormatted.Write(out[:len(out)-2])
 	outFormatted.WriteString("]")
 
-	var stats []ContainerStat
-
-	json.Unmarshal(outFormatted.Bytes(), &stats)
+	err = json.Unmarshal(outFormatted.Bytes(), &stats)
+	if err != nil {
+		return nil
+	}
 
 	return stats
 }
@@ -87,9 +92,21 @@ func sendContainersStats() {
 
 	for i := range stats {
 		tags := map[string]string{"server_id": *serverID, "server_role": strings.ToLower(*serverRole), "container": stats[i].Name}
-		memUsage, _ := strconv.ParseFloat(numberRe.FindString(stats[i].MemoryUsage), 32)
-		memPct, _ := strconv.ParseFloat(numberRe.FindString(stats[i].MemoryPercentage), 32)
-		cpuPct, _ := strconv.ParseFloat(numberRe.FindString(stats[i].CPUPercentage), 32)
+		memUsage, err := strconv.ParseFloat(numberRe.FindString(stats[i].MemoryUsage), 32)
+		if err != nil {
+			log.Println("Error parsing Memory Usage")
+			return
+		}
+		memPct, err := strconv.ParseFloat(numberRe.FindString(stats[i].MemoryPercentage), 32)
+		if err != nil {
+			log.Println("Error parsing MemoryPercentage")
+			return
+		}
+		cpuPct, err := strconv.ParseFloat(numberRe.FindString(stats[i].CPUPercentage), 32)
+		if err != nil {
+			log.Println("Error parsing CPUPercentage")
+			return
+		}
 
 		fields := map[string]interface{}{
 			"memory_usage":      memUsage,
@@ -102,8 +119,11 @@ func sendContainersStats() {
 		}
 		bp.AddPoint(pt)
 	}
-	if err := c.Write(bp); err != nil {
-		log.Printf("%s", err)
+
+	if len(stats) > 0 {
+		if err := c.Write(bp); err != nil {
+			log.Printf("%s", err)
+		}
 	}
 
 }
