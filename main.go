@@ -16,11 +16,11 @@ import (
 )
 
 var (
-	influxAddr        = flag.String("influxdb_address", "http://localhost:8086", "InfluxDB Address")
-	influxDBName      = flag.String("influxdb_dbname", "mydb", "InfluxDB Database Name")
-	influxMeasurement = flag.String("influxdb_measurement", "docker_stats", "InfluxDB Measurement")
-	serverID          = flag.String("server_id", getOutboundIP(), "Server ID")
-	serverRole        = flag.String("server_role", "app", "Server Role")
+	influxdbURL         = flag.String("influxdb_url", "http://localhost:8086", "InfluxDB URL")
+	influxdbName        = flag.String("influxdb_dbname", "mydb", "InfluxDB Database Name")
+	influxdbMeasurement = flag.String("influxdb_measurement", "docker_stats", "InfluxDB Measurement")
+	serverID            = flag.String("server_id", getOutboundIP(), "Server ID")
+	serverRole          = flag.String("server_role", "app", "Server Role")
 )
 
 type ContainerStat struct {
@@ -73,7 +73,7 @@ func sendContainersStats() {
 	stats := getContainersStats()
 
 	c, err := client.NewHTTPClient(client.HTTPConfig{
-		Addr:     *influxAddr,
+		Addr:     *influxdbURL,
 		Username: "",
 		Password: "",
 	})
@@ -83,7 +83,7 @@ func sendContainersStats() {
 	defer c.Close()
 
 	bp, err := client.NewBatchPoints(client.BatchPointsConfig{
-		Database:  *influxDBName,
+		Database:  *influxdbName,
 		Precision: "s",
 	})
 	if err != nil {
@@ -115,7 +115,7 @@ func sendContainersStats() {
 			"memory_percentage": memPct,
 			"cpu_percentage":    cpuPct,
 		}
-		pt, err := client.NewPoint(*influxMeasurement, tags, fields, time.Now())
+		pt, err := client.NewPoint(*influxdbMeasurement, tags, fields, time.Now())
 		if err != nil {
 			log.Printf("%s", err)
 		}
